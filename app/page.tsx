@@ -9,7 +9,7 @@ export default async function Home() {
     <div className="flex items-center justify-center min-h-screen">
       <h1 className="text-4xl font-bold">Welcome to Lostify!</h1>
       <ul>
-        {instruments.map((instrument) => (
+        {instruments?.map((instrument) => (
           <li key={instrument.id}>{instrument.name}</li>
         ))}
       </ul>
