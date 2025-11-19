@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { SearchBar } from '../components/SearchBar';
 import { Button } from '../components/button';
 import { PlusCircle, Package } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/tabs';
 
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
-
+  const [activeTab, setActiveTab] = useState('all');
+ 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     console.log('Searching for:', query);
@@ -34,7 +36,16 @@ export default function Home() {
         </div>
       </header>
 
-
+ <main className="container mx-auto px-4 py-8">
+        {/* Tabs for filtering */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
+            <TabsTrigger value="all">All Items</TabsTrigger>
+            <TabsTrigger value="lost">Lost</TabsTrigger>
+            <TabsTrigger value="found">Found</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </main>
 
       {/* Footer */}
       <footer className="bg-white border-t mt-16">
