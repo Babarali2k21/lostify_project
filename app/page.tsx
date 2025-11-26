@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { SearchBar } from '../components/SearchBar';
-import { Button } from '../components/button';
-import { PlusCircle, Package } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/tabs';
-import { ItemCard } from '../components/ItemCard';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { SearchBar } from "../components/SearchBar";
+import { Button } from "../components/button";
+import { PlusCircle, Package, LogIn } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "../components/tabs";
+import { ItemCard } from "../components/ItemCard";
+import { useAuth } from "../hooks/useAuth";
+import { AuthDialogs } from "../components/dialogs/AuthDialogs";
 
 // Mock data for demonstration
 const mockItems = [
@@ -90,13 +93,29 @@ const mockItems = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const {
+    user,
+    loading,
+    shouldOpenSignInFromQuery,
+    clearShouldOpenSignInFromQuery,
+    setUser,
+    logout,
+  } = useAuth();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [signUpOpen, setSignUpOpen] = useState(false);
+  const [verifyEmailOpen, setVerifyEmailOpen] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [forgotEmail, setForgotEmail] = useState('');
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    console.log('Searching for:', query);
-  };
+  if (!loading && shouldOpenSignInFromQuery) {
+    setSignInOpen(true);
+    clearShouldOpenSignInFromQuery();
+  }
 
   const filteredItems = mockItems.filter(item => {
     const matchesSearch = searchQuery === '' || 
@@ -109,6 +128,19 @@ export default function Home() {
     return matchesSearch && matchesTab;
   });
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    console.log('Searching for:', query);
+  };
+
+  const handleReportItemClick = () => {
+    if (loading) return;
+    if (!user) {
+      setSignInOpen(true);
+      return;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -119,12 +151,34 @@ export default function Home() {
               <Package className="h-8 w-8 text-blue-600" />
               <h1 className="text-blue-600">Lost & Found</h1>
             </div>
-            <Button className="gap-2">
-              <PlusCircle className="h-5 w-5" />
-              Report Item
-            </Button>
+
+            <div className="flex items-center gap-3">
+              {user === undefined ? null : !user ? (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setSignInOpen(true)}
+                >
+                  <LogIn className="h-5 w-5" />
+                  Sign In
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={logout}
+                >
+                  Logout
+                </Button>
+              )}
+
+              <Button className="gap-2" onClick={handleReportItemClick}>
+                <PlusCircle className="h-5 w-5" />
+                Report Item
+              </Button>
+            </div>
           </div>
-          
+
           <SearchBar onSearch={handleSearch} />
         </div>
       </header>
@@ -167,6 +221,24 @@ export default function Home() {
         </div>
       </footer>
 
+      <AuthDialogs
+        signInOpen={signInOpen}
+        onSignInOpenChange={setSignInOpen}
+        signUpOpen={signUpOpen}
+        onSignUpOpenChange={setSignUpOpen}
+        verifyEmailOpen={verifyEmailOpen}
+        onVerifyEmailOpenChange={setVerifyEmailOpen}
+        verifyEmail={verifyEmail}
+        setVerifyEmail={setVerifyEmail}
+        forgotOpen={forgotOpen}
+        onForgotOpenChange={setForgotOpen}
+        forgotEmail={forgotEmail}
+        setForgotEmail={setForgotEmail}
+        onSignedIn={(user) => {
+          setUser(user);
+          router.push("/");
+        }}
+      />
     </div>
   );
 }
