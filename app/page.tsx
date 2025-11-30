@@ -10,6 +10,7 @@ import { ItemCard } from "../components/ItemCard";
 import { useAuth } from "../hooks/useAuth";
 import { AuthDialogs } from "../components/dialogs/AuthDialogs";
 import { ItemDetailsDialog } from "../components/dialogs/ItemDetailsDialog";
+import { LOCATIONS } from "../components/SearchBar";
 
 export default function Home() {
   const router = useRouter();
@@ -35,6 +36,9 @@ export default function Home() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDateRange, setSelectedDateRange] = useState('all');
 
   useEffect(() => {
     async function loadItems() {
@@ -57,19 +61,34 @@ export default function Home() {
     clearShouldOpenSignInFromQuery();
   }
 
-  const filteredItems = items.filter((item) => {
-    const q = searchQuery.toLowerCase();
+const filteredItems = items.filter((item) => {
+  const q = searchQuery.toLowerCase();
 
-    const matchesSearch =
-      q === "" ||
-      item.title.toLowerCase().includes(q) ||
-      item.description.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q);
+  const matchesSearch =
+    q === "" ||
+    item.title.toLowerCase().includes(q) ||
+    item.description.toLowerCase().includes(q) ||
+    item.category.toLowerCase().includes(q);
 
-    const matchesTab = activeTab === "all" || item.status === activeTab;
+  const matchesTab =
+    activeTab === "all" || item.status === activeTab;
 
-    return matchesSearch && matchesTab;
-  });
+  const matchesCategory =
+    selectedCategory === "all" ||
+    item.category.toLowerCase() === selectedCategory.toLowerCase();
+
+  const matchesLocation = (() => {
+    if (selectedLocation === "all") return true;
+
+    const loc = LOCATIONS.find((l) => l.value === selectedLocation);
+    if (!loc) return true;
+
+    const needle = loc.label.split(",")[0].toLowerCase();
+    return item.location.toLowerCase().includes(needle);
+  })();
+
+  return matchesSearch && matchesTab && matchesCategory && matchesLocation;
+});
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -136,7 +155,20 @@ export default function Home() {
             </div>
           </div>
 
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar 
+            onSearch={handleSearch}
+            selectedLocation={selectedLocation}
+            selectedCategory={selectedCategory}
+            selectedDateRange={selectedDateRange}
+            onLocationChange={setSelectedLocation}
+            onCategoryChange={setSelectedCategory}
+            onDateRangeChange={setSelectedDateRange}
+            onClearFilters={() => {
+              setSelectedLocation('all');
+              setSelectedCategory('all');
+              setSelectedDateRange('all');
+            }}
+          />
         </div>
       </header>
 
