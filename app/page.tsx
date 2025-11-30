@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "../components/tabs";
 import { ItemCard } from "../components/ItemCard";
 import { useAuth } from "../hooks/useAuth";
 import { AuthDialogs } from "../components/dialogs/AuthDialogs";
+import { ItemDetailsDialog } from "../components/dialogs/ItemDetailsDialog";
 
 export default function Home() {
   const router = useRouter();
@@ -32,6 +33,8 @@ export default function Home() {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   useEffect(() => {
     async function loadItems() {
@@ -80,6 +83,21 @@ export default function Home() {
     }
   };
 
+  const handleContactOwner = () => {
+    if (loading) return;
+    if (!user) {
+      setDetailsDialogOpen(false);
+      setSignInOpen(true);
+      return;
+    }
+  };
+
+  const handleItemClick = (item: any) => {
+    setSelectedItem(item);
+    setDetailsDialogOpen(true);
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -102,11 +120,11 @@ export default function Home() {
                   Sign In
                 </Button>
               ) : (
-                <Button 
-                  variant="outline" 
-                  className="gap-2" 
+                <Button
+                  variant="outline"
+                  className="gap-2"
                   onClick={logout}
-                  >
+                >
                   Logout
                 </Button>
               )}
@@ -147,7 +165,7 @@ export default function Home() {
         ) : filteredItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredItems.map((item) => (
-              <ItemCard key={item.id} {...item} />
+              <ItemCard key={item.id} {...item} onClick={() => handleItemClick(item)} />
             ))}
           </div>
         ) : (
@@ -165,6 +183,13 @@ export default function Home() {
           <p>Lost & Found - Helping reunite people with their belongings</p>
         </div>
       </footer>
+
+      <ItemDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        item={selectedItem}
+        onContactOwner={handleContactOwner}
+      />
 
       <AuthDialogs
         signInOpen={signInOpen}

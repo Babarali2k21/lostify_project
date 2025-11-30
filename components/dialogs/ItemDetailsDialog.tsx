@@ -1,0 +1,147 @@
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../dialog';
+import { Badge } from '../badge';
+import { Button } from '../button';
+import { Calendar, MapPin, User, Mail, Phone, MessageSquare } from 'lucide-react';
+import { ImageWithFallback } from '../ImageWithFallback';
+import { Separator } from '../separator';
+
+interface ItemDetailsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onContactOwner?: () => void;
+  item: {
+    id: string;
+    title: string;
+    category: string;
+    status: 'lost' | 'found';
+    location: string;
+    date: string;
+    imageUrl: string;
+    description: string;
+    contactName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+  } | null;
+}
+
+export function ItemDetailsDialog({ open, onOpenChange, item, onContactOwner }: ItemDetailsDialogProps) {
+  if (!item) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-start justify-between gap-4">
+            <DialogTitle className="pr-8">{item.title}</DialogTitle>
+            <Badge variant={item.status === 'lost' ? 'destructive' : 'default'} className="shrink-0">
+              {item.status === 'lost' ? 'Lost' : 'Found'}
+            </Badge>
+          </div>
+          <DialogDescription>
+            View detailed information about this {item.status} item
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          <div className="aspect-video w-full overflow-hidden rounded-lg bg-gray-100">
+            <ImageWithFallback 
+              src={item.imageUrl} 
+              alt={item.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="mb-2">Item Details</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Badge variant="outline" className="mt-1">{item.category}</Badge>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-gray-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-500">Location</p>
+                    <p>{item.location}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-gray-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      {item.status === 'lost' ? 'Lost on' : 'Found on'}
+                    </p>
+                    <p>{item.date}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="mb-2">Description</h3>
+              <p className="text-gray-700 leading-relaxed">{item.description}</p>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="mb-3">Contact Information</h3>
+              <div className="space-y-3 bg-gray-50 rounded-lg p-4">
+                {item.contactName && (
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Name</p>
+                      <p>{item.contactName}</p>
+                    </div>
+                  </div>
+                )}
+
+                {item.contactEmail && (
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <a href={`mailto:${item.contactEmail}`} className="text-blue-600 hover:underline">
+                        {item.contactEmail}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {item.contactPhone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Phone</p>
+                      <a href={`tel:${item.contactPhone}`} className="text-blue-600 hover:underline">
+                        {item.contactPhone}
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button 
+              className="flex-1 gap-2"
+              onClick={onContactOwner}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Contact Owner
+            </Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
