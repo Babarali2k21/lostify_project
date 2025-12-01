@@ -91,73 +91,72 @@ export function ReportItemDialog({ open, onOpenChange }: ReportItemDialogProps) 
     loadOptions();
   }, [open]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!user) {
-      toast.error("You must be signed in to report an item.");
-      return;
+  if (!user) {
+    toast.error("You must be signed in to report an item.");
+    return;
+  }
+
+  if (!formData.category || !formData.location) {
+    toast.error("Please select both category and location.");
+    return;
+  }
+
+  const reportType = formData.type as "lost" | "found";
+
+  const payload = new FormData();
+  payload.append("user_id", user.id);
+  payload.append("category_id", formData.category);
+  payload.append("location_id", formData.location);
+  payload.append("title", formData.itemName);
+  payload.append("description", formData.description);
+  payload.append("date", formData.date);
+  payload.append("type", formData.type);
+  payload.append("status", "open");
+
+  if (formData.image) {
+    payload.append("image", formData.image);
+  }
+
+  try {
+    setSubmitting(true);
+
+    const res = await fetch("/api/items", {
+      method: "POST",
+      body: payload,
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to submit item");
     }
 
-    if (!formData.category || !formData.location) {
-      toast.error("Please select both category and location.");
-      return;
-    }
+    setFormData({
+      type: "lost",
+      name: "",
+      email: "",
+      phone: "",
+      itemName: "",
+      category: "",
+      description: "",
+      location: "",
+      date: "",
+      image: null,
+    });
 
-    const reportType = formData.type as "lost" | "found";
-
-    const payload = {
-      user_id: user.id,
-      category_id: formData.category,
-      location_id: formData.location,
-      title: formData.itemName,
-      description: formData.description,
-      date: formData.date,
-      type: formData.type,
-      status: "open",
-      imageUrl: null,
-    };
-
-    console.log("Submitting item payload:", payload);
-
-    try {
-      setSubmitting(true);
-
-      const res = await fetch("/api/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to submit item");
-      }
-
-      setFormData({
-        type: "lost",
-        name: "",
-        email: "",
-        phone: "",
-        itemName: "",
-        category: "",
-        description: "",
-        location: "",
-        date: "",
-        image: null,
-      });
-
-      toast.success(
-        `${reportType === "lost" ? "Lost" : "Found"} item report submitted successfully!`
-      );
-      onOpenChange(false);
-    } catch (err) {
-      console.error("Submit error:", err);
-      toast.error("Could not submit item. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    toast.success(
+      `${reportType === "lost" ? "Lost" : "Found"} item report submitted successfully!`
+    );
+    onOpenChange(false);
+  } catch (err) {
+    console.error("Submit error:", err);
+    toast.error("Could not submit item. Please try again.");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

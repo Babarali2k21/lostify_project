@@ -60,19 +60,16 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-
-    const {
-      user_id,
-      category_id,
-      location_id,
-      title,
-      description,
-      date,
-      type,
-      status = "open",
-      imageUrl = null,
-    } = body;
+    const formData = await req.formData();
+    const user_id = formData.get("user_id") as string | null;
+    const category_id = formData.get("category_id") as string | null;
+    const location_id = formData.get("location_id") as string | null;
+    const title = formData.get("title") as string | null;
+    const description = formData.get("description") as string | null;
+    const date = formData.get("date") as string | null;
+    const type = formData.get("type") as string | null;
+    const status = (formData.get("status") as string | null) ?? "open";
+    const file = formData.get("image") as File | null;
 
     if (
       !user_id ||
@@ -87,6 +84,35 @@ export async function POST(req: NextRequest) {
         { error: "Missing required fields" },
         { status: 400 }
       );
+    }
+
+    let imageUrl: string | null = null;
+
+    if (file && file.size > 0) {
+      const bucket = "item-images";
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `${user_id}/${Date.now()}.${ext}`;
+
+      console.log("Uploading file to Supabase storage:", filePath);
+      const { data: storageData, error: storageError } =
+        await supabase.storage.from(bucket).upload(filePath, file, {
+          contentType: file.type,
+        });
+
+      if (storageError) {
+        console.error("Supabase storage upload error:", storageError);
+        return NextResponse.json(
+          { error: "Failed to upload image" },
+          { status: 500 }
+        );
+      }
+
+      const { data: publicUrlData } = supabase
+        .storage
+        .from(bucket)
+        .getPublicUrl(storageData.path);
+
+      imageUrl = publicUrlData.publicUrl;
     }
 
     const { data, error } = await supabase
