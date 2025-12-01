@@ -91,72 +91,86 @@ export function ReportItemDialog({ open, onOpenChange }: ReportItemDialogProps) 
     loadOptions();
   }, [open]);
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  useEffect(() => {
+    if (open && user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+      }));
+    }
+  }, [open, user]);
 
-  if (!user) {
-    toast.error("You must be signed in to report an item.");
-    return;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!formData.category || !formData.location) {
-    toast.error("Please select both category and location.");
-    return;
-  }
-
-  const reportType = formData.type as "lost" | "found";
-
-  const payload = new FormData();
-  payload.append("user_id", user.id);
-  payload.append("category_id", formData.category);
-  payload.append("location_id", formData.location);
-  payload.append("title", formData.itemName);
-  payload.append("description", formData.description);
-  payload.append("date", formData.date);
-  payload.append("type", formData.type);
-  payload.append("status", "open");
-
-  if (formData.image) {
-    payload.append("image", formData.image);
-  }
-
-  try {
-    setSubmitting(true);
-
-    const res = await fetch("/api/items", {
-      method: "POST",
-      body: payload,
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Failed to submit item");
+    if (!user) {
+      toast.error("You must be signed in to report an item.");
+      return;
     }
 
-    setFormData({
-      type: "lost",
-      name: "",
-      email: "",
-      phone: "",
-      itemName: "",
-      category: "",
-      description: "",
-      location: "",
-      date: "",
-      image: null,
-    });
+    if (!formData.category || !formData.location) {
+      toast.error("Please select both category and location.");
+      return;
+    }
 
-    toast.success(
-      `${reportType === "lost" ? "Lost" : "Found"} item report submitted successfully!`
-    );
-    onOpenChange(false);
-  } catch (err) {
-    console.error("Submit error:", err);
-    toast.error("Could not submit item. Please try again.");
-  } finally {
-    setSubmitting(false);
-  }
-};
+    const reportType = formData.type as "lost" | "found";
+
+    const payload = new FormData();
+    payload.append("user_id", user.id);
+    payload.append("category_id", formData.category);
+    payload.append("location_id", formData.location);
+    payload.append("title", formData.itemName);
+    payload.append("description", formData.description);
+    payload.append("date", formData.date);
+    payload.append("type", formData.type);
+    payload.append("status", "open");
+    
+    if (formData.name) payload.append("name", formData.name);
+    if (formData.email) payload.append("email", formData.email);
+    if (formData.phone) payload.append("phone", formData.phone);
+    if (formData.image) {
+      payload.append("image", formData.image);
+    }
+
+    try {
+      setSubmitting(true);
+
+      const res = await fetch("/api/items", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to submit item");
+      }
+
+      setFormData({
+        type: "lost",
+        name: "",
+        email: "",
+        phone: "",
+        itemName: "",
+        category: "",
+        description: "",
+        location: "",
+        date: "",
+        image: null,
+      });
+
+      toast.success(
+        `${reportType === "lost" ? "Lost" : "Found"} item report submitted successfully!`
+      );
+      onOpenChange(false);
+    } catch (err) {
+      console.error("Submit error:", err);
+      toast.error("Could not submit item. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -201,7 +215,8 @@ const handleSubmit = async (e: React.FormEvent) => {
               <Input
                 id="name"
                 required
-                value={formData.name}
+                disabled={!!user?.name}
+                value={user?.name || formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter your full name"
               />
@@ -213,7 +228,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                 id="email"
                 type="email"
                 required
-                value={formData.email}
+                disabled={!!user?.email}
+                value={user?.email || formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="your.email@example.com"
               />
@@ -225,9 +241,10 @@ const handleSubmit = async (e: React.FormEvent) => {
                 id="phone"
                 type="tel"
                 required
-                value={formData.phone}
+                disabled={!!user?.phone}
+                value={user?.phone || formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+1 (555) 000-0000"
+                placeholder="Enter your phone number"
               />
             </div>
           </div>
