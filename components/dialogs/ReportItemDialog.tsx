@@ -1,0 +1,295 @@
+import { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../dialog';
+import { Button } from '../button';
+import { Input } from '../input';
+import { Label } from '../label';
+import { Textarea } from '../textarea';
+import { RadioGroup, RadioGroupItem } from '../radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../select';
+import { Upload } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface ReportItemDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+type Category = {
+  id: string;
+  name: string;
+};
+
+type Location = {
+  id: string;
+  name: string;
+};
+
+export function ReportItemDialog({ open, onOpenChange }: ReportItemDialogProps) {
+  const [formData, setFormData] = useState({
+    type: 'lost',
+    name: '',
+    email: '',
+    phone: '',
+    itemName: '',
+    category: '',
+    description: '',
+    location: '',
+    date: '',
+    image: null as File | null
+  });
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const loadOptions = async () => {
+      try {
+        setLoadingOptions(true);
+
+        const [catRes, locRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/locations'),
+        ]);
+
+        if (!catRes.ok) throw new Error('Failed to load categories');
+        if (!locRes.ok) throw new Error('Failed to load locations');
+
+        const catJson = await catRes.json();
+        const locJson = await locRes.json();
+
+        setCategories(catJson.categories ?? []);
+        setLocations(locJson.locations ?? []);
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to load categories/locations. Please try again.');
+      } finally {
+        setLoadingOptions(false);
+      }
+    };
+
+    loadOptions();
+  }, [open]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const reportType = formData.type as 'lost' | 'found';
+
+    setFormData({
+      type: 'lost',
+      name: '',
+      email: '',
+      phone: '',
+      itemName: '',
+      category: '',
+      description: '',
+      location: '',
+      date: '',
+      image: null
+    });
+
+      toast.success(
+        `${reportType === 'lost' ? 'Lost' : 'Found'} item report submitted successfully!`
+      );
+      onOpenChange(false);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormData({ ...formData, image: e.target.files[0] });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Report Item</DialogTitle>
+          <DialogDescription>
+            Fill in the details to report a lost or found item
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <Label>Item Type</Label>
+            <RadioGroup
+              value={formData.type}
+              onValueChange={(value) => setFormData({ ...formData, type: value })}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="lost" id="lost" />
+                <Label htmlFor="lost" className="cursor-pointer">Lost Item</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="found" id="found" />
+                <Label htmlFor="found" className="cursor-pointer">Found Item</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="border-b pb-2">Your Information</h3>
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name *</Label>
+              <Input
+                id="name"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="your.email@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                type="tel"
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+1 (555) 000-0000"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="border-b pb-2">Item Details</h3>
+
+            <div className="space-y-2">
+              <Label htmlFor="itemName">Item Name *</Label>
+              <Input
+                id="itemName"
+                required
+                value={formData.itemName}
+                onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                placeholder="e.g. Black Backpack, iPhone 14, etc."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={loadingOptions ? 'Loading categories...' : 'Select a category'}
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-56">
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description *</Label>
+              <Textarea
+                id="description"
+                required
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Provide detailed description including color, brand, distinctive features..."
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Location *</Label>
+              <Select
+                value={formData.location}
+                onValueChange={(value) => setFormData({ ...formData, location: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={loadingOptions ? 'Loading locations...' : 'Select a location'}
+                  />
+                </SelectTrigger>
+
+                <SelectContent className="max-h-56">
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date">Date *</Label>
+              <Input
+                id="date"
+                type="date"
+                required
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image">Upload Image</Label>
+              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                <input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <label htmlFor="image" className="cursor-pointer">
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-600">
+                    {formData.image ? formData.image.name : 'Click to upload an image'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG</p>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1">
+              Submit Report
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

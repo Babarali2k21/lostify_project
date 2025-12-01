@@ -10,6 +10,7 @@ import { ItemCard } from "../components/ItemCard";
 import { useAuth } from "../hooks/useAuth";
 import { AuthDialogs } from "../components/dialogs/AuthDialogs";
 import { ItemDetailsDialog } from "../components/dialogs/ItemDetailsDialog";
+import { ReportItemDialog } from "../components/dialogs/ReportItemDialog";
 import { LOCATIONS } from "../components/SearchBar";
 
 export default function Home() {
@@ -28,6 +29,7 @@ export default function Home() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [reportOpen, setReportOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [verifyEmailOpen, setVerifyEmailOpen] = useState(false);
@@ -83,8 +85,8 @@ const filteredItems = items.filter((item) => {
     const loc = LOCATIONS.find((l) => l.value === selectedLocation);
     if (!loc) return true;
 
-    const needle = loc.label.split(",")[0].toLowerCase();
-    return item.location.toLowerCase().includes(needle);
+    const exactLocation = loc.label.split(",")[0].toLowerCase();
+    return item.location.toLowerCase().includes(exactLocation);
   })();
 
   return matchesSearch && matchesTab && matchesCategory && matchesLocation;
@@ -100,6 +102,7 @@ const filteredItems = items.filter((item) => {
       setSignInOpen(true);
       return;
     }
+    setReportOpen(true);
   };
 
   const handleContactOwner = () => {
@@ -215,6 +218,11 @@ const filteredItems = items.filter((item) => {
           <p>Lost & Found - Helping reunite people with their belongings</p>
         </div>
       </footer>
+
+      <ReportItemDialog 
+        open={reportOpen} 
+        onOpenChange={setReportOpen}
+      />
 
       <ItemDetailsDialog
         open={detailsDialogOpen}
