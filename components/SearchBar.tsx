@@ -107,11 +107,10 @@ export function SearchBar({
     onClearFilters();
   };
 
-  // 🔍 auto search as user types (debounced)
   useEffect(() => {
     const timeout = setTimeout(() => {
       onSearch(searchInput);
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(timeout);
   }, [searchInput, onSearch]);
