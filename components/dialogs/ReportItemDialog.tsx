@@ -1,13 +1,28 @@
-import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../dialog';
-import { Button } from '../button';
-import { Input } from '../input';
-import { Label } from '../label';
-import { Textarea } from '../textarea';
-import { RadioGroup, RadioGroupItem } from '../radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../select';
-import { Upload } from 'lucide-react';
-import { toast } from 'sonner';
+"use client";
+
+import { useEffect, useState } from "react";
+import { useAuth } from "../../hooks/useAuth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../dialog";
+import { Button } from "../button";
+import { Input } from "../input";
+import { Label } from "../label";
+import { Textarea } from "../textarea";
+import { RadioGroup, RadioGroupItem } from "../radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../select";
+import { Upload } from "lucide-react";
+import { toast } from "sonner";
 
 interface ReportItemDialogProps {
   open: boolean;
@@ -25,22 +40,25 @@ type Location = {
 };
 
 export function ReportItemDialog({ open, onOpenChange }: ReportItemDialogProps) {
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState({
-    type: 'lost',
-    name: '',
-    email: '',
-    phone: '',
-    itemName: '',
-    category: '',
-    description: '',
-    location: '',
-    date: '',
-    image: null as File | null
+    type: "lost",
+    name: "",
+    email: "",
+    phone: "",
+    itemName: "",
+    category: "",
+    description: "",
+    location: "",
+    date: "",
+    image: null as File | null,
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -73,28 +91,72 @@ export function ReportItemDialog({ open, onOpenChange }: ReportItemDialogProps) 
     loadOptions();
   }, [open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const reportType = formData.type as 'lost' | 'found';
+    if (!user) {
+      toast.error("You must be signed in to report an item.");
+      return;
+    }
 
-    setFormData({
-      type: 'lost',
-      name: '',
-      email: '',
-      phone: '',
-      itemName: '',
-      category: '',
-      description: '',
-      location: '',
-      date: '',
-      image: null
-    });
+    if (!formData.category || !formData.location) {
+      toast.error("Please select both category and location.");
+      return;
+    }
+
+    const reportType = formData.type as "lost" | "found";
+
+    const payload = {
+      user_id: user.id,
+      category_id: formData.category,
+      location_id: formData.location,
+      title: formData.itemName,
+      description: formData.description,
+      date: formData.date,
+      type: formData.type,
+      status: "open",
+      imageUrl: null,
+    };
+
+    console.log("Submitting item payload:", payload);
+
+    try {
+      setSubmitting(true);
+
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to submit item");
+      }
+
+      setFormData({
+        type: "lost",
+        name: "",
+        email: "",
+        phone: "",
+        itemName: "",
+        category: "",
+        description: "",
+        location: "",
+        date: "",
+        image: null,
+      });
 
       toast.success(
-        `${reportType === 'lost' ? 'Lost' : 'Found'} item report submitted successfully!`
+        `${reportType === "lost" ? "Lost" : "Found"} item report submitted successfully!`
       );
       onOpenChange(false);
+    } catch (err) {
+      console.error("Submit error:", err);
+      toast.error("Could not submit item. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -284,8 +346,8 @@ export function ReportItemDialog({ open, onOpenChange }: ReportItemDialogProps) 
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Submit Report
+            <Button type="submit" className="flex-1" disabled={submitting}>
+              {submitting ? 'Submitting...' : 'Submit Report'}
             </Button>
           </div>
         </form>
