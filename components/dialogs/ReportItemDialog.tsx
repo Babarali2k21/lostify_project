@@ -27,6 +27,7 @@ import { toast } from "sonner";
 interface ReportItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: (reportType: 'lost' | 'found') => void;
 }
 
 type Category = {
@@ -39,7 +40,7 @@ type Location = {
   name: string;
 };
 
-export function ReportItemDialog({ open, onOpenChange }: ReportItemDialogProps) {
+export function ReportItemDialog({ open, onOpenChange, onSuccess }: ReportItemDialogProps) {
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -160,10 +161,12 @@ export function ReportItemDialog({ open, onOpenChange }: ReportItemDialogProps) 
         image: null,
       });
 
-      toast.success(
-        `${reportType === "lost" ? "Lost" : "Found"} item report submitted successfully!`
-      );
-      onOpenChange(false);
+      if (onSuccess) {
+        onSuccess(reportType);
+      } else {
+        toast.success(`${reportType === 'lost' ? 'Lost' : 'Found'} item report submitted successfully!`);
+        onOpenChange(false);
+      }
     } catch (err) {
       console.error("Submit error:", err);
       toast.error("Could not submit item. Please try again.");
