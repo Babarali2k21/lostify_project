@@ -11,6 +11,7 @@ import { useAuth } from "../hooks/useAuth";
 import { AuthDialogs } from "../components/dialogs/AuthDialogs";
 import { ItemDetailsDialog } from "../components/dialogs/ItemDetailsDialog";
 import { ReportItemDialog } from "../components/dialogs/ReportItemDialog";
+import { SuccessDialog } from '../components/dialogs/SuccessDialog';
 import { LOCATIONS } from "../components/SearchBar";
 
 export default function Home() {
@@ -38,23 +39,26 @@ export default function Home() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successReportType, setSuccessReportType] = useState<'lost' | 'found'>('lost');
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDateRange, setSelectedDateRange] = useState('all');
 
-  useEffect(() => {
-    async function loadItems() {
-      try {
-        const res = await fetch("/api/items");
-        const data = await res.json();
-        console.log("Loaded items:", data);
-        setItems(data);
-      } catch (e) {
-        console.error("Failed to load items:", e);
-      } finally {
-        setLoadingItems(false);
-      }
+  async function loadItems() {
+    try {
+      const res = await fetch("/api/items");
+      const data = await res.json();
+      console.log("Loaded items:", data);
+      setItems(data);
+    } catch (e) {
+      console.error("Failed to load items:", e);
+    } finally {
+      setLoadingItems(false);
     }
+  }
+
+  useEffect(() => {
     loadItems();
   }, []);
 
@@ -63,34 +67,34 @@ export default function Home() {
     clearShouldOpenSignInFromQuery();
   }
 
-const filteredItems = items.filter((item) => {
-  const q = searchQuery.toLowerCase();
+  const filteredItems = items.filter((item) => {
+    const q = searchQuery.toLowerCase();
 
-  const matchesSearch =
-    q === "" ||
-    item.title.toLowerCase().includes(q) ||
-    item.description.toLowerCase().includes(q) ||
-    item.category.toLowerCase().includes(q);
+    const matchesSearch =
+      q === "" ||
+      item.title.toLowerCase().includes(q) ||
+      item.description.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q);
 
-  const matchesTab =
-    activeTab === "all" || item.status === activeTab;
+    const matchesTab =
+      activeTab === "all" || item.status === activeTab;
 
-  const matchesCategory =
-    selectedCategory === "all" ||
-    item.category.toLowerCase() === selectedCategory.toLowerCase();
+    const matchesCategory =
+      selectedCategory === "all" ||
+      item.category.toLowerCase() === selectedCategory.toLowerCase();
 
-  const matchesLocation = (() => {
-    if (selectedLocation === "all") return true;
+    const matchesLocation = (() => {
+      if (selectedLocation === "all") return true;
 
-    const loc = LOCATIONS.find((l) => l.value === selectedLocation);
-    if (!loc) return true;
+      const loc = LOCATIONS.find((l) => l.value === selectedLocation);
+      if (!loc) return true;
 
-    const exactLocation = loc.label.split(",")[0].toLowerCase();
-    return item.location.toLowerCase().includes(exactLocation);
-  })();
+      const exactLocation = loc.label.split(",")[0].toLowerCase();
+      return item.location.toLowerCase().includes(exactLocation);
+    })();
 
-  return matchesSearch && matchesTab && matchesCategory && matchesLocation;
-});
+    return matchesSearch && matchesTab && matchesCategory && matchesLocation;
+  });
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -119,6 +123,17 @@ const filteredItems = items.filter((item) => {
     setDetailsDialogOpen(true);
   };
 
+  const handleReportSuccess = (reportType: 'lost' | 'found') => {
+    setSuccessReportType(reportType);
+    setReportOpen(false);
+    setSuccessOpen(true);
+    loadItems()
+  };
+
+  const handleReportAnother = () => {
+    setSuccessOpen(false);
+    setReportOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,7 +173,7 @@ const filteredItems = items.filter((item) => {
             </div>
           </div>
 
-          <SearchBar 
+          <SearchBar
             onSearch={handleSearch}
             selectedLocation={selectedLocation}
             selectedCategory={selectedCategory}
@@ -219,9 +234,17 @@ const filteredItems = items.filter((item) => {
         </div>
       </footer>
 
-      <ReportItemDialog 
-        open={reportOpen} 
+      <SuccessDialog
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+        reportType={successReportType}
+        onReportAnother={handleReportAnother}
+      />
+
+      <ReportItemDialog
+        open={reportOpen}
         onOpenChange={setReportOpen}
+        onSuccess={handleReportSuccess}
       />
 
       <ItemDetailsDialog
