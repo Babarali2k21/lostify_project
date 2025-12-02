@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { SearchBar } from "../components/SearchBar";
 import { Button } from "../components/button";
@@ -14,7 +14,7 @@ import { ReportItemDialog } from "../components/dialogs/ReportItemDialog";
 import { SuccessDialog } from '../components/dialogs/SuccessDialog';
 import { LOCATIONS } from "../components/SearchBar";
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const {
     user,
@@ -276,5 +276,16 @@ export default function Home() {
   );
 }
 
-
-
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-gray-600">Loading Lostify…</p>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
+  );
+}
