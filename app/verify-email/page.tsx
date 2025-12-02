@@ -1,14 +1,22 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { VerifyEmailSuccessDialog } from "../../components/dialogs/VerifyEmailSuccessDialog";
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-gray-600">Loading...</div>}>
+      <VerifyEmailContent />
+    </Suspense>
+  );
+}
+
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
-  const [open, setOpen] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (token) setOpen(true);
