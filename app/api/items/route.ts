@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { sendMail } from "@/lib/mailer";
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', {
@@ -117,7 +118,6 @@ export async function POST(req: NextRequest) {
       const ext = file.name.split(".").pop() || "jpg";
       const filePath = `${user_id}/${Date.now()}.${ext}`;
 
-      console.log("Uploading file to Supabase storage:", filePath);
       const { data: storageData, error: storageError } =
         await supabase.storage.from(bucket).upload(filePath, file, {
           contentType: file.type,
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
       imageUrl = publicUrlData.publicUrl;
     }
 
-    const { data, error } = await supabase
+    const { data: insertedItem, error: insertError } = await supabase
       .from("items")
       .insert([
         {
@@ -157,20 +157,123 @@ export async function POST(req: NextRequest) {
       .select()
       .maybeSingle();
 
-    if (error) {
-      console.error("Supabase insert error:", error);
-      return NextResponse.json(
-        { error: "Failed to create item" },
-        { status: 500 }
-      );
+    if (insertError) {
+      console.error("Insert error:", insertError);
+      return NextResponse.json({ error: "Failed to create item" }, { status: 500 });
     }
 
-    return NextResponse.json({ item: data }, { status: 201 });
+    const newItem = insertedItem;
+
+    const oppositeType = newItem.type === "lost" ? "found" : "lost";
+
+    const { data: potentialMatches, error: fetchError } = await supabase
+      .from("items")
+      .select("*")
+      .eq("type", oppositeType);
+
+    if (!fetchError && potentialMatches && potentialMatches.length > 0) {
+      for (const candidate of potentialMatches) {
+        let score = 0;
+
+        if (candidate.category_id === newItem.category_id) {
+          score += 0.4;
+        }
+
+        const locationScore =
+          candidate.location_id === newItem.location_id ? 0.3 : 0;
+        score += locationScore;
+
+        const titleSimilarity = computeTitleSimilarity(
+          newItem.title,
+          candidate.title
+        );
+        score += titleSimilarity * 0.2;
+
+        const dayDiff =
+          Math.abs(
+            new Date(newItem.date).getTime() -
+              new Date(candidate.date).getTime()
+          ) / (1000 * 60 * 60 * 24);
+
+        const dateScore = dayDiff <= 3 ? 0.1 : 0;
+        score += dateScore;
+
+        if (score >= 0.5) {
+
+          const lostItemId =
+            newItem.type === "lost" ? newItem.id : candidate.id;
+          const foundItemId =
+            newItem.type === "found" ? newItem.id : candidate.id;
+
+          await supabase.from("matches").insert([
+            {
+              lost_item_id: lostItemId,
+              found_item_id: foundItemId,
+              match_score: score,
+              location_match_score: locationScore,
+            },
+          ]);
+
+
+          const lostUserId =
+            newItem.type === "lost" ? newItem.user_id : candidate.user_id;
+          const foundUserId =
+            newItem.type === "found" ? newItem.user_id : candidate.user_id;
+
+          const { data: lostUser } = await supabase
+            .from("users")
+            .select("email, name")
+            .eq("id", lostUserId)
+            .maybeSingle();
+
+          const { data: foundUser } = await supabase
+            .from("users")
+            .select("email, name")
+            .eq("id", foundUserId)
+            .maybeSingle();
+
+          if (lostUser?.email) {
+            await sendMail(
+              lostUser.email,
+              "We found a potential match for your lost item",
+              `
+              <h2>Potential Match Found</h2>
+              <p>Hello ${lostUser.name},</p>
+              <p>We detected a possible match for your lost item: <strong>${newItem.title}</strong>.</p>
+              <p>Please check the Lost & Found portal to verify.</p>
+              `
+            );
+          }
+
+          if (foundUser?.email) {
+            await sendMail(
+              foundUser.email,
+              "Someone may have lost the item you found",
+              `
+              <h2>Potential Match Found</h2>
+              <p>Hello ${foundUser.name},</p>
+              <p>Your found item <strong>${candidate.title}</strong> appears to match a lost item reported by another user.</p>
+              <p>Please check the Lost & Found portal to verify.</p>
+              `
+            );
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({ item: newItem }, { status: 201 });
   } catch (err) {
     console.error("POST /api/items error:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+function computeTitleSimilarity(a: string, b: string) {
+  if (!a || !b) return 0;
+  a = a.toLowerCase();
+  b = b.toLowerCase();
+  const wordsA = a.split(" ").filter(Boolean);
+  const wordsB = b.split(" ").filter(Boolean);
+  const common = wordsA.filter((w) => wordsB.includes(w));
+  return common.length / Math.max(wordsA.length, wordsB.length);
 }
