@@ -28,6 +28,16 @@ interface ReportItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (reportType: 'lost' | 'found') => void;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    phone: string | null;
+    email_verified: boolean;
+    verified_at: string | null;
+    created_at: string;
+    student_id: string | null;
+  } | null | undefined;
 }
 
 type Category = {
@@ -40,8 +50,7 @@ type Location = {
   name: string;
 };
 
-export function ReportItemDialog({ open, onOpenChange, onSuccess }: ReportItemDialogProps) {
-  const { user } = useAuth();
+export function ReportItemDialog({ open, onOpenChange, onSuccess, user }: ReportItemDialogProps) {
 
   const [formData, setFormData] = useState({
     type: "lost",
@@ -127,7 +136,7 @@ export function ReportItemDialog({ open, onOpenChange, onSuccess }: ReportItemDi
     payload.append("date", formData.date);
     payload.append("type", formData.type);
     payload.append("status", "open");
-    
+
     if (formData.name) payload.append("name", formData.name);
     if (formData.email) payload.append("email", formData.email);
     if (formData.phone) payload.append("phone", formData.phone);
@@ -219,7 +228,7 @@ export function ReportItemDialog({ open, onOpenChange, onSuccess }: ReportItemDi
                 id="name"
                 required
                 disabled={!!user?.name}
-                value={user?.name || formData.name}
+                value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter your full name"
               />
@@ -232,7 +241,7 @@ export function ReportItemDialog({ open, onOpenChange, onSuccess }: ReportItemDi
                 type="email"
                 required
                 disabled={!!user?.email}
-                value={user?.email || formData.email}
+                value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="your.email@example.com"
               />
@@ -245,7 +254,7 @@ export function ReportItemDialog({ open, onOpenChange, onSuccess }: ReportItemDi
                 type="tel"
                 required
                 disabled={!!user?.phone}
-                value={user?.phone || formData.phone}
+                value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="Enter your phone number"
               />

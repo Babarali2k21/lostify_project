@@ -15,7 +15,6 @@ import { SuccessDialog } from '../components/dialogs/SuccessDialog';
 import { LOCATIONS } from "../components/SearchBar";
 
 function HomeContent() {
-  const router = useRouter();
   const {
     user,
     loading,
@@ -44,6 +43,7 @@ function HomeContent() {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDateRange, setSelectedDateRange] = useState('all');
+  const [openReportAfterLogin, setOpenReportAfterLogin] = useState(false);
 
   async function loadItems() {
     try {
@@ -104,6 +104,7 @@ function HomeContent() {
     if (loading) return;
     if (!user) {
       setSignInOpen(true);
+      setOpenReportAfterLogin(true);
       return;
     }
     setReportOpen(true);
@@ -245,6 +246,7 @@ function HomeContent() {
         open={reportOpen}
         onOpenChange={setReportOpen}
         onSuccess={handleReportSuccess}
+        user={user}
       />
 
       <ItemDetailsDialog
@@ -269,7 +271,10 @@ function HomeContent() {
         setForgotEmail={setForgotEmail}
         onSignedIn={(user) => {
           setUser(user);
-          router.push("/");
+          if (openReportAfterLogin) {
+            setReportOpen(true);
+            setOpenReportAfterLogin(false);
+          }
         }}
       />
     </div>
