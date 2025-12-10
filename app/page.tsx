@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import  Link from "next/link";
 import { SearchBar } from "../components/SearchBar";
 import { Button } from "../components/button";
 import { PlusCircle, Package, LogIn } from "lucide-react";
@@ -143,8 +143,9 @@ function HomeContent() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <Package className="h-8 w-8 text-blue-600" />
-              <h1 className="text-blue-600">Lost & Found</h1>
+              <Link href="/" className="flex items-center gap-2">
+                <h1 className="text-blue-600 text-xl font-semibold">UIBK Lost and Found</h1>
+              </Link>
             </div>
 
             <div className="flex items-center gap-3">

@@ -3,7 +3,7 @@ import "./globals.css";
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
-  title: "Lostify",
+  title: "Lostify - University Lost and Found",
   description: "Lostify helps students and staff report, find, and recover lost items across the University campus.",
 };
 
