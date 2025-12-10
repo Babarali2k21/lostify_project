@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
 import { createClient } from "@supabase/supabase-js";
 
@@ -40,11 +40,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET!,
-      { expiresIn: "7d" }
-    );
+    const token = uuidv4();
+    
+    const expiresAt = new Date(
+      Date.now() + 1000 * 60 * 60 * 24 * 7
+    ).toISOString();
+
+    await supabase.from("sessions").insert({
+      user_id: user.id,
+      token,
+      expires_at: expiresAt,
+    });
 
     const res = NextResponse.json({
       success: true,
@@ -55,8 +61,8 @@ export async function POST(req: NextRequest) {
         email_verified: user.email_verified,
       },
     });
-
-    res.cookies.set("auth_token", token, {
+    
+    res.cookies.set("session_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -65,11 +71,11 @@ export async function POST(req: NextRequest) {
     });
 
     return res;
-  } catch (err) {
+  } catch (err) {    
     console.error("signin error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
-  }
+  }  
 }

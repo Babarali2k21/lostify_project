@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import jwt from "jsonwebtoken";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,21 +8,30 @@ const supabase = createClient(
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.cookies.get("auth_token")?.value;
+    const token = req.cookies.get("session_token")?.value;
 
     if (!token) {
       return NextResponse.json({ user: null }, { status: 200 });
     }
 
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
-      id: string;
-      email: string;
-    };
+    const { data: session } = await supabase
+      .from("sessions")
+      .select("user_id, expires_at")
+      .eq("token", token)
+      .maybeSingle();
+
+    if (!session) {
+      return NextResponse.json({ user: null }, { status: 200 });
+    }
+
+    if (new Date(session.expires_at) < new Date()) {
+      return NextResponse.json({ user: null }, { status: 200 });
+    }
 
     const { data: user, error } = await supabase
       .from("users")
       .select("id, name, email, phone, email_verified, verified_at, created_at, student_id")
-      .eq("id", payload.id)
+      .eq("id", session.user_id)
       .maybeSingle();
 
     if (error) {
