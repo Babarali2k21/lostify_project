@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import  Link from "next/link";
+import Link from "next/link";
 import { SearchBar } from "../components/SearchBar";
 import { Button } from "../components/button";
 import { PlusCircle, Package, LogIn } from "lucide-react";
@@ -44,12 +44,13 @@ function HomeContent() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [openReportAfterLogin, setOpenReportAfterLogin] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   async function loadItems() {
     try {
       const res = await fetch("/api/items");
       const data = await res.json();
-      console.log("Loaded items:", data);
       setItems(data);
     } catch (e) {
       console.error("Failed to load items:", e);
@@ -95,6 +96,15 @@ function HomeContent() {
 
     return matchesSearch && matchesTab && matchesCategory && matchesLocation;
   });
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, selectedLocation, activeTab]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -214,12 +224,37 @@ function HomeContent() {
             <Package className="h-16 w-16 text-gray-300 mx-auto mb-4 animate-pulse" />
             <h3 className="text-gray-500">Loading items...</h3>
           </div>
-        ) : filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => (
-              <ItemCard key={item.id} {...item} onClick={() => handleItemClick(item)} />
-            ))}
-          </div>
+        ) : currentItems.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {currentItems.map((item) => (
+                <ItemCard key={item.id} {...item} onClick={() => handleItemClick(item)} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-center mt-8 gap-2">
+              <Button
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+              >
+                Prev
+              </Button>
+
+              <span className="px-4 py-2 text-gray-700">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <Button
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </>
         ) : (
           <div className="text-center py-16">
             <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
